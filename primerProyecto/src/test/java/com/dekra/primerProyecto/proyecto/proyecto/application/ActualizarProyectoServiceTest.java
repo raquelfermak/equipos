@@ -6,6 +6,7 @@ import com.dekra.primerProyecto.proyecto.proyecto.domain.model.Proyecto;
 import com.dekra.primerProyecto.proyecto.proyecto.infrastrucure.EnMemoriaProyectoRepository;
 import com.dekra.primerProyecto.proyecto.proyectoSnapshot.application.CrearProyectoSnapshotService;
 import com.dekra.primerProyecto.shared.email.domain.model.EmailValue;
+import com.dekra.primerProyecto.shared.email.infrastructure.EnMemoriaEmailValueRepository;
 import com.dekra.primerProyecto.shared.id.IDValue;
 import com.dekra.primerProyecto.shared.log.application.CrearLogService;
 import com.dekra.primerProyecto.shared.log.domain.model.TipoOperacion;
@@ -22,6 +23,9 @@ class ActualizarProyectoServiceTest {
 
     @Mock
     private EnMemoriaProyectoRepository enMemoriaProyectoRepository;
+
+    @Mock
+    private EnMemoriaEmailValueRepository enMemoriaEmailValueRepository;
 
     @Mock
     private CrearProyectoSnapshotService crearProyectoSnapshotService;

@@ -1,13 +1,10 @@
-package com.dekra.primerProyecto.proyecto.proyecto.controller;
+package com.dekra.primerProyecto.proyecto.proyecto.API.controller;
 
 import com.dekra.primerProyecto.proyecto.proyecto.API.controller.ProyectoController;
 import com.dekra.primerProyecto.proyecto.proyecto.API.dto.AsignacionDto;
 import com.dekra.primerProyecto.proyecto.proyecto.API.dto.CrearActualizarProyectoDto;
 import com.dekra.primerProyecto.proyecto.proyecto.API.dto.ListarProyectoDto;
-import com.dekra.primerProyecto.proyecto.proyecto.application.AsignacionProyectoService;
-import com.dekra.primerProyecto.proyecto.proyecto.application.CrearProyectoService;
-import com.dekra.primerProyecto.proyecto.proyecto.application.DesasignacionProyectoService;
-import com.dekra.primerProyecto.proyecto.proyecto.application.ListarProyectoService;
+import com.dekra.primerProyecto.proyecto.proyecto.application.*;
 import com.dekra.primerProyecto.proyecto.proyecto.domain.model.Proyecto;
 import com.dekra.primerProyecto.rol.domain.model.Rol;
 import com.dekra.primerProyecto.shared.email.domain.model.EmailValue;
@@ -38,6 +35,9 @@ class ProyectoControllerTest {
 
     @Mock
     private DesasignacionProyectoService desasignacionProyectoService;
+
+    @Mock
+    private ActualizarProyectoService actualizarProyectoService;
 
     @InjectMocks
     private ProyectoController proyectoController;
@@ -144,6 +144,25 @@ class ProyectoControllerTest {
 
         assertNotNull(resultado, "El DTO resultante no debe ser nulo");
         assertEquals("Proyecto Test", resultado.getNombre(), "El nombre del proyecto en el DTO debe coincidir");
+    }
+
+
+    @Test
+    void actualizarProyecto_deberiaActualizarProyectoCorrectamente(){
+        // GIVEN
+        proyecto = new Proyecto("Proyecto Test", EmailValue.of("owner@test.com"), "Proyecto de prueba");
+        CrearActualizarProyectoDto crearActualizarProyectoDto = new CrearActualizarProyectoDto(null, "owner2@test.com", null, "Actualizacion email");
+        Proyecto proyectoEsperado = new Proyecto(proyecto.getNombre(), EmailValue.of(crearActualizarProyectoDto.getEmail()), proyecto.getDescripcion());
+
+        // WHEN
+        when(actualizarProyectoService.actualizarProyecto(proyecto.getId().getValor(), crearActualizarProyectoDto)).thenReturn(ListarProyectoDto.toDto(proyectoEsperado));
+        ListarProyectoDto resultado = proyectoController.actualizarProyecto(proyecto.getId().getValor(), crearActualizarProyectoDto);
+
+        // THEN
+        assertEquals(proyectoEsperado.getNombre(), resultado.getNombre());
+        assertEquals(proyectoEsperado.getEmail().getValor(), resultado.getEmail());
+        assertEquals(proyectoEsperado.getDescripcion(), resultado.getDescripcion());
+
     }
 
 
