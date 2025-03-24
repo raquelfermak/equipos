@@ -1,8 +1,6 @@
 package com.dekra.primerProyecto.proyecto.proyecto.API.dto;
 
-import com.dekra.primerProyecto.rol.API.dto.RolDto;
 import com.dekra.primerProyecto.shared.id.IDValue;
-import com.dekra.primerProyecto.usuario.API.dto.UsuarioDto;
 import com.dekra.primerProyecto.proyecto.proyecto.domain.model.Proyecto;
 import lombok.*;
 

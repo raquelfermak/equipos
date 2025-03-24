@@ -85,8 +85,8 @@ class ListarProyectoSnapshotDtoTest {
         // Creamos asignaciones con 1 entrada: un Rol y un Set de 1 Usuario.
         Rol rol = new Rol("Desarrollador");
         Usuario usuario = new Usuario("Juan", EmailValue.of("juan@example.com"));
-        Map<Rol, Set<Usuario>> asignaciones = new HashMap<>();
-        asignaciones.put(rol, new HashSet<>(Collections.singletonList(usuario)));
+        Map<IDValue, Set<IDValue>> asignaciones = new HashMap<>();
+        asignaciones.put(rol.getId(), new HashSet<>(Collections.singletonList(usuario.getId())));
 
         when(proyectoSnapshot.getId()).thenReturn(id);
         when(proyectoSnapshot.getNombre()).thenReturn(nombre);
@@ -112,7 +112,7 @@ class ListarProyectoSnapshotDtoTest {
 
         assertEquals(1, dto.getAsignaciones().size(), "Debe existir 1 entrada en el mapa de asignaciones");
         // Obtenemos la entrada y verificamos que tanto la clave (RolDto) como el conjunto de UsuarioDto no sean nulos.
-        Map.Entry<RolDto, Set<UsuarioDto>> entry = dto.getAsignaciones().entrySet().iterator().next();
+        Map.Entry<String, Set<String>> entry = dto.getAsignaciones().entrySet().iterator().next();
         assertNotNull(entry.getKey(), "La clave del mapa (RolDto) no debe ser nula");
         assertNotNull(entry.getValue(), "El valor del mapa (Set<UsuarioDto>) no debe ser nulo");
         assertEquals(1, entry.getValue().size(), "El set de usuarios debe contener 1 elemento");

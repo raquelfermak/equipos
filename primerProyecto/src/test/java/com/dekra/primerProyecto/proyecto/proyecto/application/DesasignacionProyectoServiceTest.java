@@ -5,18 +5,20 @@ import com.dekra.primerProyecto.proyecto.proyecto.API.dto.ListarProyectoDto;
 import com.dekra.primerProyecto.proyecto.proyecto.domain.model.Proyecto;
 import com.dekra.primerProyecto.proyecto.proyecto.infrastrucure.EnMemoriaProyectoRepository;
 import com.dekra.primerProyecto.proyecto.proyectoSnapshot.application.CrearProyectoSnapshotService;
+import com.dekra.primerProyecto.rol.application.event.RolConsultaEvent;
 import com.dekra.primerProyecto.rol.domain.model.Rol;
-import com.dekra.primerProyecto.rol.infrastrucure.repository.EnMemoriaRolRepository;
 import com.dekra.primerProyecto.shared.email.domain.model.EmailValue;
+import com.dekra.primerProyecto.shared.id.IDValue;
 import com.dekra.primerProyecto.shared.log.application.CrearLogService;
 import com.dekra.primerProyecto.shared.log.domain.model.TipoOperacion;
+import com.dekra.primerProyecto.usuario.application.event.UsuarioConsultaEvent;
 import com.dekra.primerProyecto.usuario.domain.model.Usuario;
-import com.dekra.primerProyecto.usuario.infrastrucure.repository.EnMemoriaUsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,16 +33,13 @@ class DesasignacionProyectoServiceTest {
     private EnMemoriaProyectoRepository enMemoriaProyectoRepository;
 
     @Mock
-    private EnMemoriaUsuarioRepository enMemoriaUsuarioRepository;
-
-    @Mock
-    private EnMemoriaRolRepository enMemoriaRolRepository;
-
-    @Mock
     private CrearProyectoSnapshotService crearProyectoSnapshotService;
 
     @Mock
     private CrearLogService crearLogService;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private DesasignacionProyectoService desasignacionProyectoService;
@@ -65,22 +64,53 @@ class DesasignacionProyectoServiceTest {
         proyecto.setAsignaciones(new HashMap<>());
     }
 
+    /**
+     * Utilidad para "simular" la carga de usuario y rol
+     * cuando se publican los eventos en el servicio.
+     */
+    private void simularEventos(String usuarioIdEsperado, boolean usuarioExiste,
+                                String rolIdEsperado, boolean rolExiste) {
+
+        doAnswer(invocation -> {
+            Object event = invocation.getArgument(0);
+
+            if (event instanceof UsuarioConsultaEvent) {
+                UsuarioConsultaEvent usuarioEvent = (UsuarioConsultaEvent) event;
+                // Si coincide el id, seteamos el usuario en el evento
+                if (usuarioEvent.getUsuarioId().equals(usuarioIdEsperado)) {
+                    usuarioEvent.setExiste(usuarioExiste);
+                }
+            }
+            else if (event instanceof RolConsultaEvent) {
+                RolConsultaEvent rolEvent = (RolConsultaEvent) event;
+                // Si coincide el id, seteamos el rol en el evento
+                if (rolEvent.getRolId().equals(rolIdEsperado)) {
+                    rolEvent.setExiste(rolExiste);
+                }
+            }
+
+            // Para que no haya return value
+            return null;
+        }).when(eventPublisher).publishEvent(any());
+    }
+
     @Test
     void desasignarUsuarioARol_deberiaDesasignarUsuarioCorrectamente() {
         // GIVEN: Se asigna el usuario a un rol en el proyecto.
-        Set<Usuario> usuariosAsignados = new HashSet<>();
-        usuariosAsignados.add(usuario);
-        Map<Rol, Set<Usuario>> asignaciones = new HashMap<>();
-        asignaciones.put(rol, usuariosAsignados);
+        Set<IDValue> usuariosAsignados = new HashSet<>();
+        usuariosAsignados.add(usuario.getId());
+        Map<IDValue, Set<IDValue>> asignaciones = new HashMap<>();
+        asignaciones.put(rol.getId(), usuariosAsignados);
         proyecto.setAsignaciones(asignaciones);
 
-        AsignacionDto asignacionDto = new AsignacionDto("p1", "u1", "r1", "Comentario de desasignación");
+        AsignacionDto asignacionDto = new AsignacionDto("p1", usuario.getId().getValor(), rol.getId().getValor(), "Comentario de desasignación");
 
 
         // WHEN
         when(enMemoriaProyectoRepository.buscarPorId("p1")).thenReturn(proyecto);
-        when(enMemoriaUsuarioRepository.buscarPorId("u1")).thenReturn(usuario);
-        when(enMemoriaRolRepository.buscarPorId("r1")).thenReturn(rol);
+        // Simulamos que, cuando se publiquen eventos para "u1" y "r1",
+        // se va a setear 'usuario' y 'rol' respectivamente en dichos eventos
+        simularEventos(usuario.getId().getValor(), true, rol.getId().getValor(), true);
         ListarProyectoDto resultado = desasignacionProyectoService.desasignarUsuarioARol(asignacionDto);
 
         // THEN
@@ -93,7 +123,7 @@ class DesasignacionProyectoServiceTest {
         verify(enMemoriaProyectoRepository, times(1)).guardar(proyecto);
 
         // Verifica que se haya removido el usuario y, dado que era el único, se remueva la entrada completa.
-        assertFalse(proyecto.getAsignaciones().containsKey(rol), "El rol no debería existir en las asignaciones luego de remover el único usuario");
+        assertFalse(proyecto.getAsignaciones().containsKey(rol.getId()), "El rol no debería existir en las asignaciones luego de remover el único usuario");
 
         // Verifica el DTO retornado.
         assertNotNull(resultado, "El DTO no debe ser nulo");
@@ -105,8 +135,10 @@ class DesasignacionProyectoServiceTest {
         // Caso: Proyecto es nulo.
         AsignacionDto dto = new AsignacionDto("p1", "u1", "r1", "Comentario");
         when(enMemoriaProyectoRepository.buscarPorId("p1")).thenReturn(null);
-        when(enMemoriaUsuarioRepository.buscarPorId("u1")).thenReturn(usuario);
-        when(enMemoriaRolRepository.buscarPorId("r1")).thenReturn(rol);
+        // Simulamos que, cuando se publiquen eventos para "u1" y "r1",
+        // se va a setear 'usuario' y 'rol' respectivamente en dichos eventos
+        simularEventos("u1", true, "r1", true);
+
 
         Exception exception = assertThrows(IllegalArgumentException.class,
                 () -> desasignacionProyectoService.desasignarUsuarioARol(dto),
@@ -115,15 +147,20 @@ class DesasignacionProyectoServiceTest {
 
         // Caso: Usuario es nulo.
         when(enMemoriaProyectoRepository.buscarPorId("p1")).thenReturn(proyecto);
-        when(enMemoriaUsuarioRepository.buscarPorId("u1")).thenReturn(null);
+        // Simulamos que, cuando se publiquen eventos para "u1" y "r1",
+        // se va a setear 'usuario' y 'rol' respectivamente en dichos eventos
+        simularEventos("u1", false, "r1", true);
+
         exception = assertThrows(IllegalArgumentException.class,
                 () -> desasignacionProyectoService.desasignarUsuarioARol(dto),
                 "Debe lanzar excepción cuando el usuario es nulo");
         assertEquals("Algún elemento no existe.", exception.getMessage());
 
         // Caso: Rol es nulo.
-        when(enMemoriaUsuarioRepository.buscarPorId("u1")).thenReturn(usuario);
-        when(enMemoriaRolRepository.buscarPorId("r1")).thenReturn(null);
+        // Simulamos que, cuando se publiquen eventos para "u1" y "r1",
+        // se va a setear 'usuario' y 'rol' respectivamente en dichos eventos
+        simularEventos("u1", true, "r1", false);
+
         exception = assertThrows(IllegalArgumentException.class,
                 () -> desasignacionProyectoService.desasignarUsuarioARol(dto),
                 "Debe lanzar excepción cuando el rol es nulo");
@@ -136,8 +173,10 @@ class DesasignacionProyectoServiceTest {
         proyecto.setAsignaciones(null);
         AsignacionDto dto = new AsignacionDto("p1", "u1", "r1", "Comentario");
         when(enMemoriaProyectoRepository.buscarPorId("p1")).thenReturn(proyecto);
-        when(enMemoriaUsuarioRepository.buscarPorId("u1")).thenReturn(usuario);
-        when(enMemoriaRolRepository.buscarPorId("r1")).thenReturn(rol);
+        // Simulamos que, cuando se publiquen eventos para "u1" y "r1",
+        // se va a setear 'usuario' y 'rol' respectivamente en dichos eventos
+        simularEventos("u1", true, "r1", true);
+
 
         Exception exception = assertThrows(IllegalArgumentException.class,
                 () -> desasignacionProyectoService.desasignarUsuarioARol(dto),
@@ -151,8 +190,10 @@ class DesasignacionProyectoServiceTest {
         proyecto.setAsignaciones(new HashMap<>());
         AsignacionDto dto = new AsignacionDto("p1", "u1", "r1", "Comentario");
         when(enMemoriaProyectoRepository.buscarPorId("p1")).thenReturn(proyecto);
-        when(enMemoriaUsuarioRepository.buscarPorId("u1")).thenReturn(usuario);
-        when(enMemoriaRolRepository.buscarPorId("r1")).thenReturn(rol);
+        // Simulamos que, cuando se publiquen eventos para "u1" y "r1",
+        // se va a setear 'usuario' y 'rol' respectivamente en dichos eventos
+        simularEventos("u1", true, "r1", true);
+
 
         Exception exception = assertThrows(IllegalArgumentException.class,
                 () -> desasignacionProyectoService.desasignarUsuarioARol(dto),
@@ -163,18 +204,20 @@ class DesasignacionProyectoServiceTest {
     @Test
     void desasignarUsuarioARol_deberiaLanzarExceptionSiUsuarioNoEstaAsignadoAlRol() {
         // GIVEN: El proyecto tiene asignaciones para el rol, pero el usuario no se encuentra asignado.
-        Set<Usuario> usuariosAsignados = new HashSet<>();
+        Set<IDValue> usuariosAsignados = new HashSet<>();
         // Se asigna un usuario distinto.
         Usuario otroUsuario = new Usuario("Otro Usuario", null);
-        usuariosAsignados.add(otroUsuario);
-        Map<Rol, Set<Usuario>> asignaciones = new HashMap<>();
-        asignaciones.put(rol, usuariosAsignados);
+        usuariosAsignados.add(otroUsuario.getId());
+        Map<IDValue, Set<IDValue>> asignaciones = new HashMap<>();
+        asignaciones.put(rol.getId(), usuariosAsignados);
         proyecto.setAsignaciones(asignaciones);
 
-        AsignacionDto dto = new AsignacionDto("p1", "u1", "r1", "Comentario");
+        AsignacionDto dto = new AsignacionDto("p1", "u1", rol.getId().getValor(), "Comentario");
         when(enMemoriaProyectoRepository.buscarPorId("p1")).thenReturn(proyecto);
-        when(enMemoriaUsuarioRepository.buscarPorId("u1")).thenReturn(usuario);
-        when(enMemoriaRolRepository.buscarPorId("r1")).thenReturn(rol);
+        // Simulamos que, cuando se publiquen eventos para "u1" y "r1",
+        // se va a setear 'usuario' y 'rol' respectivamente en dichos eventos
+        simularEventos("u1", true, rol.getId().getValor(), true);
+
 
         Exception exception = assertThrows(IllegalArgumentException.class,
                 () -> desasignacionProyectoService.desasignarUsuarioARol(dto),

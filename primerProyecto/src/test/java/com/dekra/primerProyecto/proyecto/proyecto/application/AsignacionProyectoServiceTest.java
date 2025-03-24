@@ -8,6 +8,7 @@ import com.dekra.primerProyecto.proyecto.proyectoSnapshot.application.CrearProye
 import com.dekra.primerProyecto.rol.application.event.RolConsultaEvent;
 import com.dekra.primerProyecto.rol.domain.model.Rol;
 import com.dekra.primerProyecto.shared.email.domain.model.EmailValue;
+import com.dekra.primerProyecto.shared.id.IDValue;
 import com.dekra.primerProyecto.shared.log.application.CrearLogService;
 import com.dekra.primerProyecto.usuario.application.event.UsuarioConsultaEvent;
 import com.dekra.primerProyecto.usuario.domain.model.Usuario;
@@ -63,8 +64,8 @@ class AsignacionProyectoServiceTest {
      * Utilidad para "simular" la carga de usuario y rol
      * cuando se publican los eventos en el servicio.
      */
-    private void simularEventos(String usuarioIdEsperado, Usuario usuarioRetornado,
-                                String rolIdEsperado, Rol rolRetornado) {
+    private void simularEventos(String usuarioIdEsperado, boolean usuarioExiste,
+                                String rolIdEsperado, boolean rolExiste) {
 
         doAnswer(invocation -> {
             Object event = invocation.getArgument(0);
@@ -73,14 +74,14 @@ class AsignacionProyectoServiceTest {
                 UsuarioConsultaEvent usuarioEvent = (UsuarioConsultaEvent) event;
                 // Si coincide el id, seteamos el usuario en el evento
                 if (usuarioEvent.getUsuarioId().equals(usuarioIdEsperado)) {
-                    usuarioEvent.setUsuario(usuarioRetornado);
+                    usuarioEvent.setExiste(usuarioExiste);
                 }
             }
             else if (event instanceof RolConsultaEvent) {
                 RolConsultaEvent rolEvent = (RolConsultaEvent) event;
                 // Si coincide el id, seteamos el rol en el evento
                 if (rolEvent.getRolId().equals(rolIdEsperado)) {
-                    rolEvent.setRol(rolRetornado);
+                    rolEvent.setExiste(rolExiste);
                 }
             }
 
@@ -98,7 +99,7 @@ class AsignacionProyectoServiceTest {
 
         // Simulamos que, cuando se publiquen eventos para "u1" y "r1",
         // se va a setear 'usuario' y 'rol' respectivamente en dichos eventos
-        simularEventos("u1", usuario, "r1", rol);
+        simularEventos("u1", true, "r1", true);
 
         // WHEN
         ListarProyectoDto resultado = asignacionProyectoService.asignarUsuarioARol(asignacionDto);
@@ -109,8 +110,6 @@ class AsignacionProyectoServiceTest {
 
         // Verifica que en el proyecto se creó un Map de asignaciones
         assertNotNull(resultado.getAsignaciones(), "El mapa de asignaciones no debería ser nulo");
-        assertEquals(rol.getNombre(),
-                resultado.getAsignaciones().entrySet().iterator().next().getKey().getNombre());
 
         // Verifica el set de usuarios asignados
         Set<?> usuariosAsignados =
@@ -127,20 +126,20 @@ class AsignacionProyectoServiceTest {
     @Test
     void asignarUsuarioARol_deberiaAsignarUsuarioCuandoYaExisteEseRol() {
         // GIVEN
-        AsignacionDto asignacionDto = new AsignacionDto("p1", "u1", "r1");
+        AsignacionDto asignacionDto = new AsignacionDto("p1", "u1", rol.getId().getValor());
 
         // Proyecto ya tiene un rol con un usuario asignado
         EmailValue emailValue3 = EmailValue.of("maria@example.com");
         Usuario maria = new Usuario("Maria", emailValue3);
 
-        Map<Rol, Set<Usuario>> asignacionesExistentes = new HashMap<>();
-        asignacionesExistentes.put(rol, new HashSet<>(Collections.singletonList(maria)));
+        Map<IDValue, Set<IDValue>> asignacionesExistentes = new HashMap<>();
+        asignacionesExistentes.put(rol.getId(), new HashSet<>(Collections.singletonList(maria.getId())));
         proyecto.setAsignaciones(asignacionesExistentes);
 
         when(enMemoriaProyectoRepository.buscarPorId("p1")).thenReturn(proyecto);
 
         // Simulamos que los eventos devuelven 'usuario' y 'rol'
-        simularEventos("u1", usuario, "r1", rol);
+        simularEventos("u1", true, rol.getId().getValor(), true);
 
         // WHEN
         ListarProyectoDto resultado = asignacionProyectoService.asignarUsuarioARol(asignacionDto);
@@ -148,9 +147,6 @@ class AsignacionProyectoServiceTest {
         // THEN
         verify(enMemoriaProyectoRepository, times(1)).guardar(proyecto);
 
-        // Debe seguir existiendo la entrada en el Map con 'rol'
-        assertEquals(rol.getNombre(),
-                resultado.getAsignaciones().entrySet().iterator().next().getKey().getNombre());
 
         // Ahora el set debería tener 2 usuarios: 'Maria' y 'Juan'
         Set<?> usuariosAsignados =
@@ -167,7 +163,7 @@ class AsignacionProyectoServiceTest {
 
         // Aunque simulemos aquí usuario y rol, el proyecto es nulo,
         // así que la excepción se lanzará antes.
-        simularEventos("u1", usuario, "r1", rol);
+        simularEventos("u1", true, "r1", true);
 
         // WHEN / THEN
         assertThrows(IllegalArgumentException.class,
@@ -184,7 +180,7 @@ class AsignacionProyectoServiceTest {
         when(enMemoriaProyectoRepository.buscarPorId("p1")).thenReturn(proyecto);
 
         // Simulamos que el evento para "u1" no asigna ningún usuario => null
-        simularEventos("u1", null, "r1", rol);
+        simularEventos("u1", false, "r1", true);
 
         // WHEN / THEN
         assertThrows(IllegalArgumentException.class,
@@ -201,7 +197,7 @@ class AsignacionProyectoServiceTest {
         when(enMemoriaProyectoRepository.buscarPorId("p1")).thenReturn(proyecto);
 
         // Simulamos que el evento para "r1" no asigna ningún rol => null
-        simularEventos("u1", usuario, "r1", null);
+        simularEventos("u1", true, "r1", false);
 
         // WHEN / THEN
         assertThrows(IllegalArgumentException.class,

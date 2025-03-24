@@ -9,12 +9,10 @@ import com.dekra.primerProyecto.proyecto.proyecto.application.CrearProyectoServi
 import com.dekra.primerProyecto.proyecto.proyecto.application.DesasignacionProyectoService;
 import com.dekra.primerProyecto.proyecto.proyecto.application.ListarProyectoService;
 import com.dekra.primerProyecto.proyecto.proyecto.domain.model.Proyecto;
-import com.dekra.primerProyecto.proyecto.proyecto.infrastrucure.EnMemoriaProyectoRepository;
 import com.dekra.primerProyecto.rol.domain.model.Rol;
-import com.dekra.primerProyecto.rol.infrastrucure.repository.EnMemoriaRolRepository;
 import com.dekra.primerProyecto.shared.email.domain.model.EmailValue;
+import com.dekra.primerProyecto.shared.id.IDValue;
 import com.dekra.primerProyecto.usuario.domain.model.Usuario;
-import com.dekra.primerProyecto.usuario.infrastrucure.repository.EnMemoriaUsuarioRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,15 +32,6 @@ class ProyectoControllerTest {
 
     @Mock
     private ListarProyectoService listarProyectoService;
-
-    @Mock
-    private EnMemoriaProyectoRepository enMemoriaProyectoRepository;
-
-    @Mock
-    private EnMemoriaUsuarioRepository enMemoriaUsuarioRepository;
-
-    @Mock
-    private EnMemoriaRolRepository enMemoriaRolRepository;
 
     @Mock
     private AsignacionProyectoService asignacionProyectoService;
@@ -104,10 +93,10 @@ class ProyectoControllerTest {
         rol = new Rol("RolTest");
         AsignacionDto asignacionDto = new AsignacionDto("p1", "u1", "r1");
 
-        Map<Rol, Set<Usuario>> asignacionesEsperadas = new HashMap<>();
-        Set<Usuario> usuariosRol = new HashSet<>();
-        usuariosRol.add(usuario);
-        asignacionesEsperadas.put(rol, usuariosRol);
+        Map<IDValue, Set<IDValue>> asignacionesEsperadas = new HashMap<>();
+        Set<IDValue> usuariosRol = new HashSet<>();
+        usuariosRol.add(usuario.getId());
+        asignacionesEsperadas.put(rol.getId(), usuariosRol);
         proyecto.setAsignaciones(asignacionesEsperadas);
 
         ListarProyectoDto proyectoEsperado = ListarProyectoDto.toDto(proyecto);
@@ -121,11 +110,11 @@ class ProyectoControllerTest {
 
         assertNotNull(proyecto.getAsignaciones(), "El mapa de asignaciones no debería ser nulo");
 
-        assertTrue(proyecto.getAsignaciones().containsKey(rol), "El proyecto debe contener la clave del rol asignado");
+        assertTrue(proyecto.getAsignaciones().containsKey(rol.getId()), "El proyecto debe contener la clave del rol asignado");
 
-        Set<Usuario> usuariosAsignados = proyecto.getAsignaciones().get(rol);
+        Set<IDValue> usuariosAsignados = proyecto.getAsignaciones().get(rol.getId());
         assertNotNull(usuariosAsignados, "El set de usuarios asignados no debería ser nulo");
-        assertTrue(usuariosAsignados.contains(usuario), "El usuario debe estar asignado al rol");
+        assertTrue(usuariosAsignados.contains(usuario.getId()), "El usuario debe estar asignado al rol");
 
         assertNotNull(resultado, "El DTO resultante no debe ser nulo");
         assertEquals("Proyecto Test", resultado.getNombre(), "El nombre del proyecto en el DTO debe coincidir");
@@ -139,7 +128,7 @@ class ProyectoControllerTest {
         rol = new Rol("RolTest");
         AsignacionDto asignacionDto = new AsignacionDto("p1", "u1", "r1");
 
-        Map<Rol, Set<Usuario>> asignacionesEsperadas = new HashMap<>();
+        Map<IDValue, Set<IDValue>> asignacionesEsperadas = new HashMap<>();
         proyecto.setAsignaciones(asignacionesEsperadas);
 
         ListarProyectoDto proyectoEsperado = ListarProyectoDto.toDto(proyecto);
