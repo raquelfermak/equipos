@@ -1,6 +1,5 @@
 package com.dekra.primerProyecto.usuario.application.event;
 
-import com.dekra.primerProyecto.usuario.domain.model.Usuario;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.context.ApplicationEvent;
@@ -10,11 +9,12 @@ public class UsuarioConsultaEvent extends ApplicationEvent {
 
     private final String usuarioId;
     @Setter
-    private Usuario usuario;
+    private boolean existe;
 
     public UsuarioConsultaEvent(String usuarioId) {
         super(usuarioId);
         this.usuarioId = usuarioId;
     }
+
 
 }

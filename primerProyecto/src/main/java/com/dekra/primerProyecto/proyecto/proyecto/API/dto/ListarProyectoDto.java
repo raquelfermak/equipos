@@ -1,6 +1,7 @@
 package com.dekra.primerProyecto.proyecto.proyecto.API.dto;
 
 import com.dekra.primerProyecto.rol.API.dto.RolDto;
+import com.dekra.primerProyecto.shared.id.IDValue;
 import com.dekra.primerProyecto.usuario.API.dto.UsuarioDto;
 import com.dekra.primerProyecto.proyecto.proyecto.domain.model.Proyecto;
 import lombok.*;
@@ -18,7 +19,7 @@ public class ListarProyectoDto {
     private String nombre;
     private String email;
     private String descripcion;
-    private Map<RolDto, Set<UsuarioDto>> asignaciones;
+    private Map<String, Set<String>> asignaciones;
 
     public ListarProyectoDto(String nombre, String email, String descripcion) {
         this.nombre =  nombre;
@@ -39,14 +40,14 @@ public class ListarProyectoDto {
         dto.setDescripcion(proyecto.getDescripcion());
 
         if (proyecto.getAsignaciones() != null) {
-            Map<RolDto, Set<UsuarioDto>> asignacionesMap = proyecto.getAsignaciones()
+            Map<String, Set<String>> asignacionesMap = proyecto.getAsignaciones()
                     .entrySet()
                     .stream()
                     .collect(Collectors.toMap(
-                            entry -> RolDto.toDto(entry.getKey()),
+                            entry -> entry.getKey().getValor(),
                             entry -> entry.getValue()
                                     .stream()
-                                    .map(UsuarioDto::toDto)
+                                    .map(IDValue::getValor)
                                     .collect(Collectors.toSet())
                     ));
             dto.setAsignaciones(asignacionesMap);

@@ -16,7 +16,7 @@ public class UsuarioConsultaEventListener {
 
     @EventListener
     public void handleUsuarioConsultaEvent(UsuarioConsultaEvent event) {
-        Usuario usuario = usuarioRepository.buscarPorId(event.getUsuarioId());
-        event.setUsuario(usuario);
+        boolean existe = usuarioRepository.buscarPorId(event.getUsuarioId()) != null;
+        event.setExiste(existe);
     }
 }

@@ -17,7 +17,7 @@ public class RolConsultaEventListener {
 
     @EventListener
     public void handleRolConsultaEvent(RolConsultaEvent event) {
-        Rol rol = rolRepository.buscarPorId(event.getRolId());
-        event.setRol(rol);
+        boolean existe = rolRepository.buscarPorId(event.getRolId()) != null;
+        event.setExiste(existe);
     }
 }

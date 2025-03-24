@@ -10,7 +10,7 @@ public class RolConsultaEvent extends ApplicationEvent {
 
     private final String rolId;
     @Setter
-    private Rol rol;
+    private boolean existe;
 
     public RolConsultaEvent(String rolId) {
         super(rolId);

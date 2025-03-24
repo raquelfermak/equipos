@@ -8,6 +8,7 @@ import com.dekra.primerProyecto.proyecto.proyectoSnapshot.application.CrearProye
 import com.dekra.primerProyecto.rol.application.event.RolConsultaEvent;
 import com.dekra.primerProyecto.rol.domain.model.Rol;
 import com.dekra.primerProyecto.rol.infrastrucure.repository.EnMemoriaRolRepository;
+import com.dekra.primerProyecto.shared.id.IDValue;
 import com.dekra.primerProyecto.shared.log.application.CrearLogService;
 import com.dekra.primerProyecto.shared.log.domain.model.TipoOperacion;
 import com.dekra.primerProyecto.usuario.application.event.UsuarioConsultaEvent;
@@ -46,37 +47,37 @@ public class DesasignacionProyectoService {
         // Publicamos un evento para solicitar el Usuario
         UsuarioConsultaEvent usuarioEvent = new UsuarioConsultaEvent(asignacionDto.getUsuarioId());
         applicationEventPublisher.publishEvent(usuarioEvent);
-        Usuario usuario = usuarioEvent.getUsuario();
+        boolean usuarioExiste = usuarioEvent.isExiste();
 
         // Publicamos un evento para solicitar el Rol
         RolConsultaEvent rolEvent = new RolConsultaEvent(asignacionDto.getRolId());
         applicationEventPublisher.publishEvent(rolEvent);
-        Rol rol = rolEvent.getRol();
+        boolean rolExiste = rolEvent.isExiste();
 
         // Validamos que ambos existan
-        if (usuario == null || rol == null) {
+        if (!usuarioExiste || !rolExiste) {
             throw new IllegalArgumentException("Algún elemento no existe.");
         }
 
         // Obtener el Map de asignaciones
-        Map<Rol, Set<Usuario>> asignaciones = proyecto.getAsignaciones();
+        Map<IDValue, Set<IDValue>> asignaciones = proyecto.getAsignaciones();
         if (asignaciones == null) {
             throw new IllegalArgumentException("No hay asignaciones");
         }
 
         // Si el rol no está presente, se crea un Set y se añade el usuario
-        if (!asignaciones.containsKey(rol)) {
+        if (!asignaciones.containsKey(IDValue.of(rolEvent.getRolId()))) {
             throw new IllegalArgumentException("No existe el rol en el proyecto");
-        }else if (!asignaciones.get(rol).contains(usuario)) {
+        }else if (!asignaciones.get(IDValue.of(rolEvent.getRolId())).contains(IDValue.of(usuarioEvent.getUsuarioId()))) {
             throw new IllegalArgumentException("No existe el usuario en el proyecto");
         } else {
             // Si  existe, se elimina el usuario del Set correspondiente
             crearProyectoSnapshotService.crearProyectoSnapshot(proyecto);
 
-            Set<Usuario> usuariosSet = asignaciones.get(rol);
-            usuariosSet.remove(usuario);
+            Set<IDValue> usuariosSet = asignaciones.get(IDValue.of(rolEvent.getRolId()));
+            usuariosSet.remove(IDValue.of(usuarioEvent.getUsuarioId()));
             if(usuariosSet.isEmpty()){
-                asignaciones.remove(rol);
+                asignaciones.remove(IDValue.of(rolEvent.getRolId()));
             }
         }
 
@@ -84,7 +85,7 @@ public class DesasignacionProyectoService {
         enMemoriaProyectoRepository.guardar(proyecto);
 
         // Creamos el log
-        crearLogService.crearLog(proyecto.getId(), usuario.getId(), TipoOperacion.MOD_ASIGNACIONES, asignacionDto.getComentario());
+        crearLogService.crearLog(proyecto.getId(), IDValue.of(usuarioEvent.getUsuarioId()), TipoOperacion.MOD_ASIGNACIONES, asignacionDto.getComentario());
 
         return ListarProyectoDto.toDto(proyecto);
     }
