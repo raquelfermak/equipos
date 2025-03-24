@@ -21,7 +21,7 @@ class EnMemoriaProyectoRepositoryTest {
     }
 
     @Test
-    void guardar_deberiaGuardarProyectoValido() {
+    void guardar_deberiaGuardarProyectoValidoNoExistente() {
         // GIVEN
         EmailValue emailValue = EmailValue.of("juan@outlook.com");
         Proyecto proyecto = new Proyecto("P1", emailValue, "descripcion");
@@ -32,6 +32,21 @@ class EnMemoriaProyectoRepositoryTest {
         // THEN
         assertEquals(1, enMemoriaProyectoRepository.listar().size(), "La lista debe contener un proyecto");
         assertEquals("P1", enMemoriaProyectoRepository.listar().get(0).getNombre(), "El nombre guardado debe ser 'P1'");
+    }
+
+    @Test
+    void guardar_deberiaGuardarProyectoValidoExistente() {
+        // GIVEN
+        EmailValue emailValue = EmailValue.of("juan@outlook.com");
+        Proyecto proyecto = new Proyecto("P1", emailValue, "descripcion");
+        enMemoriaProyectoRepository.guardar(proyecto);
+        Proyecto proyectoActualizado = new Proyecto(proyecto.getId(), "P2", emailValue, "descripcion2", null);
+
+        // WHEN
+        enMemoriaProyectoRepository.guardar(proyectoActualizado);
+        // THEN
+        assertEquals(1, enMemoriaProyectoRepository.listar().size(), "La lista debe contener un proyecto");
+        assertEquals("P2", enMemoriaProyectoRepository.listar().get(0).getNombre(), "El nombre guardado debe ser 'P2'");
     }
 
     @Test

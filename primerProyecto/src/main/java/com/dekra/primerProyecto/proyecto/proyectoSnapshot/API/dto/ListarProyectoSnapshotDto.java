@@ -4,6 +4,7 @@ import com.dekra.primerProyecto.proyecto.proyectoSnapshot.domain.model.ProyectoS
 import com.dekra.primerProyecto.rol.API.dto.RolDto;
 import com.dekra.primerProyecto.shared.id.IDValue;
 import com.dekra.primerProyecto.usuario.API.dto.UsuarioDto;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
 public class ListarProyectoSnapshotDto {
 
     private String id;

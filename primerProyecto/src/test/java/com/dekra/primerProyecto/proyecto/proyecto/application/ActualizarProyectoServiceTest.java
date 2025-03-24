@@ -76,6 +76,39 @@ class ActualizarProyectoServiceTest {
     }
 
     @Test
+    void actualizarProyecto_deberiaActualizarProyectoAtributosNulosCorrectamente() {
+        // GIVEN
+        Proyecto proyecto = mock(Proyecto.class);
+        when(proyecto.getNombre()).thenReturn("Viejo nombre");
+        IDValue idMock = mock(IDValue.class);
+        when(idMock.getValor()).thenReturn("id123");
+        when(proyecto.getId()).thenReturn(idMock);
+
+        EmailValue emailMock = mock(EmailValue.class);
+        when(emailMock.getValor()).thenReturn("viejo@example.com");
+        when(proyecto.getEmail()).thenReturn(emailMock);
+
+        CrearActualizarProyectoDto dto = new CrearActualizarProyectoDto();
+
+        // Se simula que el repositorio encuentra el proyecto dado el id
+        when(enMemoriaProyectoRepository.buscarPorId("id123")).thenReturn(proyecto);
+
+        // WHEN
+        ListarProyectoDto resultado = actualizarProyectoService.actualizarProyecto("id123", dto);
+
+        // THEN
+        verify(crearProyectoSnapshotService, times(1)).crearProyectoSnapshot(proyecto);
+        verify(enMemoriaProyectoRepository, times(1)).guardar(proyecto);
+        verify(crearLogService, times(1)).crearLog(proyecto.getId(), null, TipoOperacion.MOD_ATRIBUTOS, null);
+        assertEquals(proyecto.getNombre(), resultado.getNombre());
+        assertEquals(proyecto.getEmail().getValor(), resultado.getEmail());
+        assertEquals(proyecto.getDescripcion(), resultado.getDescripcion());
+        assertNotNull(resultado, "El DTO de proyecto actualizado no debe ser null");
+    }
+
+
+
+    @Test
     void actualizarProyecto_deberiaLanzarExcepcionSiNoExisteElProyecto() {
         // GIVEN
         String id = "proyectoInexistente";

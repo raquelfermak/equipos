@@ -7,8 +7,6 @@ import lombok.Value;
 import java.util.Objects;
 
 @Getter
-@Value(staticConstructor = "valueOf")
-@ToString
 public final class EmailValue {
 
     private final String valor;
