@@ -1,8 +1,7 @@
-package com.dekra.primerProyecto.rol.infrastrucure;
+package com.dekra.primerProyecto.rol.infrastrucure.repository;
 
 
 import com.dekra.primerProyecto.rol.domain.model.Rol;
-import com.dekra.primerProyecto.rol.infrastrucure.repository.EnMemoriaRolRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

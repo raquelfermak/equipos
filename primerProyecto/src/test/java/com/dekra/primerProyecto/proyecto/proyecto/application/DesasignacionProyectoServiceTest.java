@@ -95,7 +95,7 @@ class DesasignacionProyectoServiceTest {
     }
 
     @Test
-    void desasignarUsuarioARol_deberiaDesasignarUsuarioCorrectamente() {
+    void desasignarUsuarioARol_deberiaDesasignarUsuarioCorrectamenteConSoloUnUsuarioEnRol() {
         // GIVEN: Se asigna el usuario a un rol en el proyecto.
         Set<IDValue> usuariosAsignados = new HashSet<>();
         usuariosAsignados.add(usuario.getId());
@@ -123,8 +123,47 @@ class DesasignacionProyectoServiceTest {
         verify(enMemoriaProyectoRepository, times(1)).guardar(proyecto);
 
         // Verifica que se haya removido el usuario y, dado que era el único, se remueva la entrada completa.
-        assertFalse(proyecto.getAsignaciones().containsKey(rol.getId()), "El rol no debería existir en las asignaciones luego de remover el único usuario");
+        assertFalse(resultado.getAsignaciones().containsKey(rol.getId().getValor()), "El rol no debería existir en las asignaciones luego de remover el único usuario");
 
+        // Verifica el DTO retornado.
+        assertNotNull(resultado, "El DTO no debe ser nulo");
+        assertEquals("Proyecto 1", resultado.getNombre(), "El nombre del proyecto debe coincidir");
+    }
+
+    @Test
+    void desasignarUsuarioARol_deberiaDesasignarUsuarioCorrectamenteConMasDeUnUsuarioEnRol() {
+        // GIVEN: Se asigna el usuario a un rol en el proyecto.
+        EmailValue emailValue3 = EmailValue.of("sofia@example.com");
+        Usuario usuario2 = new Usuario("Usuario2", emailValue3);
+        Set<IDValue> usuariosAsignados = new HashSet<>();
+        usuariosAsignados.add(usuario.getId());
+        usuariosAsignados.add(usuario2.getId());
+        Map<IDValue, Set<IDValue>> asignaciones = new HashMap<>();
+        asignaciones.put(rol.getId(), usuariosAsignados);
+        proyecto.setAsignaciones(asignaciones);
+
+        AsignacionDto asignacionDto = new AsignacionDto("p1", usuario.getId().getValor(), rol.getId().getValor(), "Comentario de desasignación");
+
+
+        // WHEN
+        when(enMemoriaProyectoRepository.buscarPorId("p1")).thenReturn(proyecto);
+        // Simulamos que, cuando se publiquen eventos para "u1" y "r1",
+        // se va a setear 'usuario' y 'rol' respectivamente en dichos eventos
+        simularEventos(usuario.getId().getValor(), true, rol.getId().getValor(), true);
+        ListarProyectoDto resultado = desasignacionProyectoService.desasignarUsuarioARol(asignacionDto);
+
+        // THEN
+        // Verifica que se haya invocado la creación del snapshot y del log.
+        verify(crearProyectoSnapshotService, times(1)).crearProyectoSnapshot(proyecto);
+        verify(crearLogService, times(1))
+                .crearLog(eq(proyecto.getId()), eq(usuario.getId()), eq(TipoOperacion.MOD_ASIGNACIONES), eq("Comentario de desasignación"));
+
+        // Verifica que se guarde el proyecto actualizado.
+        verify(enMemoriaProyectoRepository, times(1)).guardar(proyecto);
+
+        // Verifica que se haya removido el usuario y, dado que era el único, se remueva la entrada completa.
+        assertTrue(resultado.getAsignaciones().containsKey(rol.getId().getValor()), "El rol no debería existir en las asignaciones luego de remover el único usuario");
+        assertFalse(resultado.getAsignaciones().get(rol.getId().getValor()).isEmpty());
         // Verifica el DTO retornado.
         assertNotNull(resultado, "El DTO no debe ser nulo");
         assertEquals("Proyecto 1", resultado.getNombre(), "El nombre del proyecto debe coincidir");

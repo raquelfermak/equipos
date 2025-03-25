@@ -13,7 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -65,6 +65,47 @@ class CrearProyectoSnapshotServiceTest {
         assertEquals(nombre, snapshotGuardado.getNombre(), "El nombre debe coincidir");
         assertEquals(email, snapshotGuardado.getEmail(), "El email debe coincidir");
         assertEquals(descripcion, snapshotGuardado.getDescripcion(), "La descripción debe coincidir");
+    }
+
+    @Test
+    void crearProyectoSnapshot_deberiaCrearSnapshotConAsignaciones() {
+        // GIVEN: Un proyecto con un snapshot previo cuya versión es 5
+        Proyecto proyecto = mock(Proyecto.class);
+        IDValue idRol = mock(IDValue.class);
+        when(idRol.getValor()).thenReturn("123");
+        IDValue idUsuario = mock(IDValue.class);
+        when(idUsuario.getValor()).thenReturn("456");
+        IDValue idProyecto = IDValue.of();
+        EmailValue email = EmailValue.of("test@example.com");
+        String nombre = "Proyecto 1";
+        String descripcion = "Descripción de prueba";
+        Map<IDValue, Set<IDValue>> asignaciones = new HashMap<>();
+        asignaciones.put(idRol, new HashSet<>(Collections.singletonList(idUsuario)));
+        // WHEN: Se configuran las respuestas del proyecto y se simula que existe un snapshot previo con versión 5
+        when(proyecto.getId()).thenReturn(idProyecto);
+        when(proyecto.getNombre()).thenReturn(nombre);
+        when(proyecto.getEmail()).thenReturn(email);
+        when(proyecto.getDescripcion()).thenReturn(descripcion);
+        when(proyecto.getAsignaciones()).thenReturn(asignaciones);
+
+        ProyectoSnapshot ultimoSnapshot = mock(ProyectoSnapshot.class);
+        VersionValue versionAnterior = VersionValue.of(5);
+        when(ultimoSnapshot.getVersionValue()).thenReturn(versionAnterior);
+
+        when(repository.buscarUltimoPorId(idProyecto.getValor())).thenReturn(ultimoSnapshot);
+
+        crearProyectoSnapshotService.crearProyectoSnapshot(proyecto);
+
+        // THEN: Se verifica que el snapshot se guarda con la versión 6 (5 + 1) y con los datos correctos
+        ArgumentCaptor<ProyectoSnapshot> captor = ArgumentCaptor.forClass(ProyectoSnapshot.class);
+        verify(repository, times(1)).guardar(captor.capture());
+        ProyectoSnapshot snapshotGuardado = captor.getValue();
+
+        assertEquals(6, snapshotGuardado.getVersionValue().getValor(), "La versión del snapshot debe ser 6");
+        assertEquals(nombre, snapshotGuardado.getNombre(), "El nombre debe coincidir");
+        assertEquals(email, snapshotGuardado.getEmail(), "El email debe coincidir");
+        assertEquals(descripcion, snapshotGuardado.getDescripcion(), "La descripción debe coincidir");
+        assertEquals(asignaciones, snapshotGuardado.getAsignaciones(), "Las asignaciones deberian coincidir");
     }
 
     @Test
